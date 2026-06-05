@@ -1,0 +1,5 @@
+aiogram>=3.21
+yandex-music>=2.2
+aiohttp>=3.12
+mutagen>=1.47
+Pillow>=11.3
