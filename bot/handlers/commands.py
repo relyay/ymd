@@ -114,7 +114,7 @@ async def _perform_search_and_show(message: Message, query: str):
             await message.answer("Ничего не найдено :(")
             return
 
-        tracks = search_result.tracks.results[:5]
+        tracks = search_result.tracks.results[:6]
         inline_keyboard = []
         for track in tracks:
             if not getattr(track, "available", True):

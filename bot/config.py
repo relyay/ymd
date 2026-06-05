@@ -13,4 +13,4 @@ SUBSCRIPTIONS_DB = os.getenv("SUBSCRIPTIONS_DB", "data/subscriptions.db")
 SUBSCRIBE_PRICE_STARS = int(os.getenv("SUBSCRIBE_PRICE_STARS", "50"))
 SUBSCRIBE_DURATION_DAYS = int(os.getenv("SUBSCRIBE_DURATION_DAYS", "30"))
 MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", "10"))
-ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "7459991544").split(",")]
+ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",")]
