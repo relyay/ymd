@@ -1,6 +1,7 @@
 # Yandex Music Download Bot
 
 Telegram bot for searching and downloading tracks from Yandex Music
+https://YandexUBot.t.me
 
 ### Local run
 
