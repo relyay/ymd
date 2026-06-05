@@ -6,7 +6,7 @@ Telegram bot for searching and downloading tracks from Yandex Music
 
 ```bash
 cp .env.example .env
-# fill BOT_TOKEN and YM_TOKEN
+# fill BOT_TOKEN, YM_TOKEN, and other variables
 pip install -r requirements.txt
 python -m bot
 ```
@@ -15,6 +15,6 @@ python -m bot
 
 ```bash
 cp .env.example .env
-# fill BOT_TOKEN and YM_TOKEN
+# fill BOT_TOKEN, YM_TOKEN, and other variables
 docker compose up -d --build # or podman compose up -d --build
 ```
