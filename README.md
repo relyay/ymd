@@ -1,6 +1,6 @@
 # Yandex Music Download Bot
 
-Telegram bot for searching and downloading tracks from Yandex Music.
+Telegram bot for searching and downloading tracks from Yandex Music
 
 ### Local run
 
@@ -11,10 +11,10 @@ pip install -r requirements.txt
 python -m bot
 ```
 
-### Docker
+### Docker or Podman
 
 ```bash
 cp .env.example .env
 # fill BOT_TOKEN and YM_TOKEN
-docker compose up -d --build
+docker compose up -d --build # or podman compose up -d --build
 ```
