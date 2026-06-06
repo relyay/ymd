@@ -1,6 +1,7 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import (
+    ChosenInlineResult,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InlineQuery,
@@ -16,6 +17,7 @@ from bot.i18n import _
 from bot.storage.users import (
     add_subscription,
     get_subscription_days_left,
+    is_subscribed,
     register_user,
     set_user_lang,
 )
@@ -221,32 +223,42 @@ async def inline_search(inline_query: InlineQuery):
         if not getattr(track, "available", True):
             continue
         artists = ", ".join(artist.name for artist in track.artists)
-        title = track.title
-
-        markup = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="Download", callback_data=f"inline_dl_{track.id}"
-                    )
-                ]
-            ]
-        )
-
         results.append(
             InlineQueryResultArticle(
                 id=str(track.id),
-                title=title,
+                title=track.title,
                 description=artists,
                 input_message_content=InputTextMessageContent(
-                    message_text=f"{title} - {artists}"
+                    message_text=f"{track.title} - {artists}"
                 ),
-                reply_markup=markup,
             )
         )
 
     if results:
-        await inline_query.answer(results, cache_time=60, is_personal=True)
+        await inline_query.answer(
+            results,
+            cache_time=60,
+            is_personal=True,
+            switch_pm_text="Download in private",
+            switch_pm_parameter="inline",
+        )
+
+
+@router.chosen_inline_result()
+async def chosen_inline_handler(chosen_result: ChosenInlineResult):
+    try:
+        track_id = int(chosen_result.result_id)
+        user_id = chosen_result.from_user.id
+
+        priority = 0 if is_subscribed(user_id) else 1
+
+        progress_msg = await ctx.bot.send_message(user_id, _(user_id, "queued"))
+
+        ctx.download_manager.enqueue(
+            user_id, track_id, progress_msg.message_id, priority
+        )
+    except Exception:
+        pass
 
 
 @router.message()
