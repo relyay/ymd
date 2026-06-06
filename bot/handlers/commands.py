@@ -3,6 +3,9 @@ from aiogram.filters import Command
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    InlineQuery,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
     LabeledPrice,
     Message,
 )
@@ -196,6 +199,54 @@ async def search_command_handler(message: Message):
         return
 
     await _perform_search_and_show(message, query)
+
+
+@router.inline_query()
+async def inline_search(inline_query: InlineQuery):
+    query = inline_query.query.strip()
+    if not query:
+        return
+
+    search_result = await ctx.ym_client.search(query, type_="track")
+
+    if not getattr(search_result, "tracks", None) or not getattr(
+        search_result.tracks, "results", None
+    ):
+        return
+
+    tracks = search_result.tracks.results[:50]
+
+    results = []
+    for track in tracks:
+        if not getattr(track, "available", True):
+            continue
+        artists = ", ".join(artist.name for artist in track.artists)
+        title = track.title
+
+        markup = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="Download", callback_data=f"inline_dl_{track.id}"
+                    )
+                ]
+            ]
+        )
+
+        results.append(
+            InlineQueryResultArticle(
+                id=str(track.id),
+                title=title,
+                description=artists,
+                input_message_content=InputTextMessageContent(
+                    message_text=f"{title} - {artists}"
+                ),
+                reply_markup=markup,
+            )
+        )
+
+    if results:
+        await inline_query.answer(results, cache_time=60, is_personal=True)
 
 
 @router.message()

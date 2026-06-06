@@ -52,6 +52,25 @@ async def lang_callback_handler(callback: CallbackQuery):
     await callback.message.delete()
 
 
+@router.callback_query(lambda c: c.data and c.data.startswith("inline_dl_"))
+async def inline_download_callback_handler(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    try:
+        track_id = int(callback.data.split("_", 2)[2])
+
+        priority = 0 if is_subscribed(callback.from_user.id) else 1
+
+        progress_msg = await ctx.bot.send_message(chat_id, _(chat_id, "queued"))
+
+        ctx.download_manager.enqueue(
+            chat_id, track_id, progress_msg.message_id, priority
+        )
+
+        await callback.answer()
+    except Exception:
+        await callback.answer(_(chat_id, "download_error"))
+
+
 @router.callback_query(lambda c: c.data and c.data.startswith("delete_"))
 async def delete_track_handler(callback: CallbackQuery):
     try:
