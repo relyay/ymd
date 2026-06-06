@@ -1,4 +1,5 @@
 from bot import context as ctx
+from bot.storage.users import get_user_lang
 
 TRANSLATIONS = {
     "ru": {
@@ -95,6 +96,9 @@ TRANSLATIONS = {
 
 
 def _(chat_id: int, key: str, **kwargs) -> str:
-    lang = ctx.user_states.get(chat_id, {}).get("lang", "ru")
+    lang = ctx.user_states.get(chat_id, {}).get("lang")
+    if lang is None:
+        lang = get_user_lang(chat_id)
+        ctx.user_states.setdefault(chat_id, {})["lang"] = lang
     text = TRANSLATIONS.get(lang, TRANSLATIONS["ru"]).get(key, key)
     return text.format(**kwargs) if kwargs else text

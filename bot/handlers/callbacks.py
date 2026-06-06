@@ -4,10 +4,11 @@ from aiogram.types import CallbackQuery, LabeledPrice, Message
 from bot import context as ctx
 from bot.config import SUBSCRIBE_DURATION_DAYS
 from bot.i18n import _
-from bot.storage.subscription import (
+from bot.storage.users import (
     add_subscription,
     get_subscription_days_left,
     is_subscribed,
+    set_user_lang,
 )
 
 router = Router()
@@ -43,8 +44,10 @@ async def download_callback_handler(callback: CallbackQuery):
 
 @router.callback_query(lambda c: c.data and c.data.startswith("lang_"))
 async def lang_callback_handler(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
     lang = callback.data.split("_")[1]
-    ctx.user_states.setdefault(callback.message.chat.id, {})["lang"] = lang
+    ctx.user_states.setdefault(chat_id, {})["lang"] = lang
+    set_user_lang(chat_id, lang)
     await callback.answer()
     await callback.message.delete()
 

@@ -5,21 +5,49 @@ import sqlite3
 from bot.config import SUBSCRIPTIONS_DB, SUBSCRIBE_DURATION_DAYS
 
 
-def init_db():
+def init_users_table():
     conn = sqlite3.connect(SUBSCRIPTIONS_DB)
     try:
         c = conn.cursor()
         c.execute(
-            """CREATE TABLE IF NOT EXISTS subscriptions
+            """CREATE TABLE IF NOT EXISTS users
                (
-                   user_id
-                   INTEGER
-                   PRIMARY
-                   KEY,
-                   expires_at
-                   INTEGER
+                   user_id INTEGER PRIMARY KEY,
+                   lang TEXT NOT NULL DEFAULT 'ru',
+                   expires_at INTEGER NOT NULL DEFAULT 0
                )"""
         )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def register_user(user_id: int) -> None:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_user_lang(user_id: int) -> str:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute("SELECT lang FROM users WHERE user_id = ?", (user_id,))
+        row = c.fetchone()
+    finally:
+        conn.close()
+    return row[0] if row else "ru"
+
+
+def set_user_lang(user_id: int, lang: str) -> None:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute("UPDATE users SET lang = ? WHERE user_id = ?", (lang, user_id))
         conn.commit()
     finally:
         conn.close()
@@ -29,7 +57,7 @@ def add_subscription(user_id: int, days: int = SUBSCRIBE_DURATION_DAYS) -> None:
     conn = sqlite3.connect(SUBSCRIPTIONS_DB)
     try:
         c = conn.cursor()
-        c.execute("SELECT expires_at FROM subscriptions WHERE user_id = ?", (user_id,))
+        c.execute("SELECT expires_at FROM users WHERE user_id = ?", (user_id,))
         row = c.fetchone()
 
         if days == -1:
@@ -42,10 +70,13 @@ def add_subscription(user_id: int, days: int = SUBSCRIBE_DURATION_DAYS) -> None:
             base = current if current > now else now
             new_expires = base + days * 86400
         else:
+            register_user(user_id)
             new_expires = int(time.time()) + days * 86400
 
-        c.execute("INSERT OR REPLACE INTO subscriptions (user_id, expires_at) VALUES (?, ?)",
-                  (user_id, new_expires))
+        c.execute(
+            "UPDATE users SET expires_at = ? WHERE user_id = ?",
+            (new_expires, user_id),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -55,7 +86,7 @@ def get_subscription_days_left(user_id: int) -> int:
     conn = sqlite3.connect(SUBSCRIPTIONS_DB)
     try:
         c = conn.cursor()
-        c.execute("SELECT expires_at FROM subscriptions WHERE user_id = ?", (user_id,))
+        c.execute("SELECT expires_at FROM users WHERE user_id = ?", (user_id,))
         row = c.fetchone()
     finally:
         conn.close()
@@ -65,6 +96,8 @@ def get_subscription_days_left(user_id: int) -> int:
     expires_at = int(row[0])
     if expires_at == -1:
         return -1
+    if expires_at == 0:
+        return 0
     now = int(time.time())
     if expires_at <= now:
         return 0

@@ -10,13 +10,14 @@ from aiogram.types import (
 from bot import context as ctx
 from bot.config import ADMIN_IDS, SUBSCRIBE_DURATION_DAYS, SUBSCRIBE_PRICE_STARS
 from bot.i18n import _
-from bot.storage.subscription import add_subscription, get_subscription_days_left
+from bot.storage.users import add_subscription, get_subscription_days_left, register_user
 
 router = Router()
 
 
 @router.message(Command("start"))
 async def send_welcome(message: Message):
+    register_user(message.from_user.id)
     await message.answer(
         _(message.chat.id, "welcome"),
         parse_mode="Markdown",
