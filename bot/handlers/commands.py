@@ -9,6 +9,7 @@ from aiogram.types import (
 
 from bot import context as ctx
 from bot.config import ADMIN_IDS, SUBSCRIBE_DURATION_DAYS, SUBSCRIBE_PRICE_STARS
+from bot.i18n import get_text
 from bot.storage.subscription import add_subscription, get_subscription_days_left
 
 router = Router()
@@ -17,10 +18,7 @@ router = Router()
 @router.message(Command("start"))
 async def send_welcome(message: Message):
     await message.answer(
-        "Отправьте мне название песни или строчку из неё, и я найду этот трек!\n\n"
-        "/subscribe — оформить подписку\n"
-        "/status — проверить статус подписки\n\n"
-        "Добавьте меня в чат и ищите музыку вместе с друзьями с помощью команды /search _название_",
+        get_text(message.chat.id, "welcome"),
         parse_mode="Markdown",
     )
 
@@ -29,13 +27,14 @@ async def send_welcome(message: Message):
 async def status_handler(message: Message):
     chat_id = message.chat.id
     days_left = get_subscription_days_left(chat_id)
-    text = f"Ваш user_id: {chat_id}\nПодписка: "
+    status_text = ""
     if days_left == -1:
-        text += "∞"
+        status_text = get_text(chat_id, "subscription_infinite")
     elif days_left > 0:
-        text += f"осталось {days_left} дн."
+        status_text = get_text(chat_id, "subscription_days_left", days=days_left)
     else:
-        text += "отсутствует"
+        status_text = get_text(chat_id, "subscription_none")
+    text = f"{get_text(chat_id, 'your_user_id', user_id=chat_id)}\n{get_text(chat_id, 'subscription_status')}{status_text}"
     await message.answer(text)
 
 
@@ -45,7 +44,7 @@ async def subscribe_handler(message: Message):
     days_left = get_subscription_days_left(chat_id)
     if days_left > 0:
         await message.answer(
-            f"У вас уже есть подписка.\n\nОсталось: {days_left} дней.\n\nПосле оплаты к текущей подписке добавится ещё {SUBSCRIBE_DURATION_DAYS} дней"
+            get_text(chat_id, "already_subscribed", days=days_left, duration=SUBSCRIBE_DURATION_DAYS)
         )
 
     try:
@@ -53,8 +52,8 @@ async def subscribe_handler(message: Message):
 
         invoice_msg = await ctx.bot.send_invoice(
             chat_id=chat_id,
-            title=f"Подписка на {SUBSCRIBE_DURATION_DAYS} дней",
-            description=f"Оплата подписки на {SUBSCRIBE_DURATION_DAYS} дней",
+            title=get_text(chat_id, "invoice_title", days=SUBSCRIBE_DURATION_DAYS),
+            description=get_text(chat_id, "invoice_description", days=SUBSCRIBE_DURATION_DAYS),
             payload="subscribe_30d",
             provider_token="",
             currency="XTR",
@@ -66,32 +65,43 @@ async def subscribe_handler(message: Message):
 
     except Exception:
         await message.answer(
-            "Не удалось создать счёт для оплаты. Пожалуйста, попробуйте позже"
+            get_text(chat_id, "invoice_failed")
         )
+
+
+@router.message(Command("lang"))
+async def lang_handler(message: Message):
+    inline_keyboard = [
+        [InlineKeyboardButton(text="English 🇬🇧", callback_data="lang_en")],
+        [InlineKeyboardButton(text="Русский 🇷🇺", callback_data="lang_ru")],
+    ]
+    markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+    await message.answer(get_text(message.chat.id, "choose_language"), reply_markup=markup)
 
 
 @router.message(Command("addsubscribe"))
 async def add_subscribe_handler(message: Message):
     user_id = message.from_user.id
+    chat_id = message.chat.id
     if user_id not in ADMIN_IDS:
-        await message.answer("<3")
+        await message.answer(get_text(chat_id, "admin_love"))
         return
 
     parts = message.text.split()
     if len(parts) != 3:
-        await message.answer("Использование: /addsubscribe USER_ID DAYS")
+        await message.answer(get_text(chat_id, "addsubscribe_usage"))
         return
 
     try:
         target_id = int(parts[1])
         days = int(parts[2])
     except ValueError:
-        await message.answer("USER_ID и DAYS должны быть числами.")
+        await message.answer(get_text(chat_id, "addsubscribe_invalid"))
         return
 
     add_subscription(target_id, days)
-    display = "∞" if days == -1 else f"{days} дн."
-    await message.answer(f"Подписка ({display}) выдана пользователю {target_id}")
+    display = "∞" if days == -1 else get_text(message.chat.id, "subscription_days_left", days=days)
+    await message.answer(get_text(chat_id, "addsubscribe_done", display=display, target_id=target_id))
 
 
 async def _perform_search_and_show(message: Message, query: str):
@@ -111,7 +121,7 @@ async def _perform_search_and_show(message: Message, query: str):
         if not getattr(search_result, "tracks", None) or not getattr(
             search_result.tracks, "results", None
         ):
-            await message.answer("Ничего не найдено :(")
+            await message.answer(get_text(chat_id, "nothing_found"))
             return
 
         tracks = search_result.tracks.results[:6]
@@ -130,14 +140,14 @@ async def _perform_search_and_show(message: Message, query: str):
         if inline_keyboard:
             markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
             select_msg = await message.answer(
-                "Выберите трек для загрузки", reply_markup=markup
+                get_text(chat_id, "select_track"), reply_markup=markup
             )
             ctx.user_states[chat_id] = {"select_msg": select_msg}
         else:
-            await message.answer("Найденные треки недоступны для загрузки")
+            await message.answer(get_text(chat_id, "tracks_unavailable"))
 
     except Exception:
-        await message.answer("Произошла ошибка при поиске. Попробуйте позже")
+        await message.answer(get_text(chat_id, "search_error"))
 
 
 @router.message(Command("search"))
@@ -149,7 +159,7 @@ async def search_command_handler(message: Message):
             query = parts[1].strip()
 
     if not query:
-        await message.answer("Использование: /search _название_", parse_mode="Markdown")
+        await message.answer(get_text(message.chat.id, "search_usage"), parse_mode="Markdown")
         return
 
     await _perform_search_and_show(message, query)
@@ -165,7 +175,7 @@ async def search_track_handler(message: Message):
 
     query = message.text.strip() if message.text else ""
     if not query:
-        await message.answer("Отправьте название трека или используйте /search")
+        await message.answer(get_text(message.chat.id, "send_track_name"))
         return
 
     await _perform_search_and_show(message, query)

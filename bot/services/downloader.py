@@ -9,6 +9,7 @@ from aiogram import Bot
 from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup
 from yandex_music import ClientAsync
 
+from bot.i18n import get_text
 from bot.services.tags import add_tags_to_audio, save_jpeg_thumb
 
 
@@ -54,7 +55,7 @@ class DownloadManager:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="Удалить", callback_data=f"delete_{message_id}"
+                        text=get_text(chat_id, "delete"), callback_data=f"delete_{message_id}"
                     )
                 ]
             ]
@@ -100,17 +101,19 @@ class DownloadManager:
                                         if elapsed > 0
                                         else 0
                                     )
-                                    progress_text = (
-                                        f"Загрузка {progress}%\n"
-                                        f"Скачано: {downloaded / (1024 * 1024):.2f}MB / {(total_size / (1024 * 1024)) if total_size > 0 else 0:.2f}MB\n"
-                                        f"Скорость: {speed:.2f} MB/s"
+                                    progress_text = get_text(
+                                        chat_id, "downloading_progress",
+                                        progress=progress,
+                                        downloaded=downloaded / (1024 * 1024),
+                                        total=(total_size / (1024 * 1024)) if total_size > 0 else 0,
+                                        speed=speed,
                                     )
                                     await self._edit_progress_message(
                                         chat_id, progress_msg_id, progress_text
                                     )
         except Exception:
             await self._edit_progress_message(
-                chat_id, progress_msg_id, f"Ошибка при загрузке файла"
+                chat_id, progress_msg_id, get_text(chat_id, "download_error")
             )
 
     async def _download_and_send_track(
@@ -124,7 +127,7 @@ class DownloadManager:
             title = track_info.title
 
             await self._edit_progress_message(
-                chat_id, progress_msg_id, "Получение информации о треке..."
+                chat_id, progress_msg_id, get_text(chat_id, "downloading_info")
             )
 
             cover_url = f"https://{track_info.cover_uri.replace('%%', '400x400')}"
@@ -157,7 +160,7 @@ class DownloadManager:
                 await self._edit_progress_message(
                     chat_id,
                     progress_msg_id,
-                    "MP3 формат недоступен для этого трека. Попробуйте другой трек",
+                    get_text(chat_id, "mp3_unavailable"),
                 )
                 return
 
@@ -175,14 +178,14 @@ class DownloadManager:
                 await self._edit_progress_message(
                     chat_id,
                     progress_msg_id,
-                    "Файл слишком большой для отправки как аудио (>50MB)",
+                    get_text(chat_id, "file_too_large"),
                 )
                 return
 
             await add_tags_to_audio(temp_path, title, artists, cover_data)
 
             await self._edit_progress_message(
-                chat_id, progress_msg_id, "Отправка трека..."
+                chat_id, progress_msg_id, get_text(chat_id, "sending_track")
             )
 
             try:
@@ -205,7 +208,7 @@ class DownloadManager:
                 await self._add_action_buttons(chat_id, sent_audio.message_id, title)
             except Exception:
                 await self._edit_progress_message(
-                    chat_id, progress_msg_id, f"Ошибка при отправке трека"
+                    chat_id, progress_msg_id, get_text(chat_id, "send_error")
                 )
                 return
 
@@ -215,7 +218,7 @@ class DownloadManager:
                 pass
 
         except Exception:
-            await self._edit_progress_message(chat_id, progress_msg_id, f"Общая ошибка")
+            await self._edit_progress_message(chat_id, progress_msg_id, get_text(chat_id, "general_error"))
         finally:
             if temp_file and os.path.exists(temp_file):
                 try:
