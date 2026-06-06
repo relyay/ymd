@@ -45,7 +45,7 @@ TRANSLATIONS = {
         "delete": "Удалить",
         "delete_done": "Трек удалён",
         "delete_error": "Не удалось удалить трек (возможно, он уже удалён)",
-        "choose_language": "Choose language / Выберите язык:",
+        "choose_language": "Choose language / Выберите язык",
     },
     "en": {
         "welcome": (
@@ -90,7 +90,7 @@ TRANSLATIONS = {
         "delete": "Delete",
         "delete_done": "Track deleted",
         "delete_error": "Could not delete track (maybe it's already deleted)",
-        "choose_language": "Choose language / Выберите язык:",
+        "choose_language": "Choose language / Выберите язык",
     },
 }
 
