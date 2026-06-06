@@ -1,12 +1,10 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import (
-    ChosenInlineResult,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InlineQuery,
-    InlineQueryResultArticle,
-    InputTextMessageContent,
+    InlineQueryResultAudio,
     LabeledPrice,
     Message,
 )
@@ -17,7 +15,6 @@ from bot.i18n import _
 from bot.storage.users import (
     add_subscription,
     get_subscription_days_left,
-    is_subscribed,
     register_user,
     set_user_lang,
 )
@@ -216,49 +213,39 @@ async def inline_search(inline_query: InlineQuery):
     ):
         return
 
-    tracks = search_result.tracks.results[:50]
+    raw_tracks = [
+        t for t in search_result.tracks.results[:15] if getattr(t, "available", True)
+    ]
 
-    results = []
-    for track in tracks:
-        if not getattr(track, "available", True):
-            continue
-        artists = ", ".join(artist.name for artist in track.artists)
-        results.append(
-            InlineQueryResultArticle(
-                id=str(track.id),
-                title=track.title,
-                description=artists,
-                input_message_content=InputTextMessageContent(
-                    message_text=f"{track.title} - {artists}"
-                ),
+    async def _resolve(track):
+        try:
+            info = (await ctx.ym_client.tracks(track.id))[0]
+            artists = ", ".join(a.name for a in info.artists)
+            di = await info.get_download_info_async(get_direct_links=True)
+            mp3 = sorted(
+                [d for d in di if d.codec == "mp3" and d.direct_link],
+                key=lambda x: x.bitrate_in_kbps,
+                reverse=True,
             )
-        )
+            if not mp3:
+                return None
+            return InlineQueryResultAudio(
+                id=str(track.id),
+                audio_url=mp3[0].direct_link,
+                title=info.title,
+                performer=artists,
+                audio_duration=info.duration_ms // 1000 if info.duration_ms else 0,
+            )
+        except Exception:
+            return None
+
+    import asyncio
+
+    resolved = await asyncio.gather(*[_resolve(t) for t in raw_tracks])
+    results = [r for r in resolved if r is not None]
 
     if results:
-        await inline_query.answer(
-            results,
-            cache_time=60,
-            is_personal=True,
-            switch_pm_text="Download in private",
-            switch_pm_parameter="inline",
-        )
-
-
-@router.chosen_inline_result()
-async def chosen_inline_handler(chosen_result: ChosenInlineResult):
-    try:
-        track_id = int(chosen_result.result_id)
-        user_id = chosen_result.from_user.id
-
-        priority = 0 if is_subscribed(user_id) else 1
-
-        progress_msg = await ctx.bot.send_message(user_id, _(user_id, "queued"))
-
-        ctx.download_manager.enqueue(
-            user_id, track_id, progress_msg.message_id, priority
-        )
-    except Exception:
-        pass
+        await inline_query.answer(results, cache_time=300, is_personal=True)
 
 
 @router.message()
