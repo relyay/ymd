@@ -9,7 +9,7 @@ from aiogram.types import (
 
 from bot import context as ctx
 from bot.config import ADMIN_IDS, SUBSCRIBE_DURATION_DAYS, SUBSCRIBE_PRICE_STARS
-from bot.i18n import get_text
+from bot.i18n import _
 from bot.storage.subscription import add_subscription, get_subscription_days_left
 
 router = Router()
@@ -18,7 +18,7 @@ router = Router()
 @router.message(Command("start"))
 async def send_welcome(message: Message):
     await message.answer(
-        get_text(message.chat.id, "welcome"),
+        _(message.chat.id, "welcome"),
         parse_mode="Markdown",
     )
 
@@ -29,12 +29,12 @@ async def status_handler(message: Message):
     days_left = get_subscription_days_left(chat_id)
     status_text = ""
     if days_left == -1:
-        status_text = get_text(chat_id, "subscription_infinite")
+        status_text = _(chat_id, "subscription_infinite")
     elif days_left > 0:
-        status_text = get_text(chat_id, "subscription_days_left", days=days_left)
+        status_text = _(chat_id, "subscription_days_left", days=days_left)
     else:
-        status_text = get_text(chat_id, "subscription_none")
-    text = f"{get_text(chat_id, 'your_user_id', user_id=chat_id)}\n{get_text(chat_id, 'subscription_status')}{status_text}"
+        status_text = _(chat_id, "subscription_none")
+    text = f"{_(chat_id, 'your_user_id', user_id=chat_id)}\n{_(chat_id, 'subscription_status')}{status_text}"
     await message.answer(text)
 
 
@@ -44,7 +44,7 @@ async def subscribe_handler(message: Message):
     days_left = get_subscription_days_left(chat_id)
     if days_left > 0:
         await message.answer(
-            get_text(
+            _(
                 chat_id,
                 "already_subscribed",
                 days=days_left,
@@ -57,8 +57,8 @@ async def subscribe_handler(message: Message):
 
         invoice_msg = await ctx.bot.send_invoice(
             chat_id=chat_id,
-            title=get_text(chat_id, "invoice_title", days=SUBSCRIBE_DURATION_DAYS),
-            description=get_text(
+            title=_(chat_id, "invoice_title", days=SUBSCRIBE_DURATION_DAYS),
+            description=_(
                 chat_id, "invoice_description", days=SUBSCRIBE_DURATION_DAYS
             ),
             payload="subscribe_30d",
@@ -71,7 +71,7 @@ async def subscribe_handler(message: Message):
         ctx.invoices[chat_id] = invoice_msg.message_id
 
     except Exception:
-        await message.answer(get_text(chat_id, "invoice_failed"))
+        await message.answer(_(chat_id, "invoice_failed"))
 
 
 @router.message(Command("lang"))
@@ -82,7 +82,7 @@ async def lang_handler(message: Message):
     ]
     markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
     await message.answer(
-        get_text(message.chat.id, "choose_language"), reply_markup=markup
+        _(message.chat.id, "choose_language"), reply_markup=markup
     )
 
 
@@ -91,29 +91,29 @@ async def add_subscribe_handler(message: Message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     if user_id not in ADMIN_IDS:
-        await message.answer(get_text(chat_id, "admin_love"))
+        await message.answer(_(chat_id, "admin_love"))
         return
 
     parts = message.text.split()
     if len(parts) != 3:
-        await message.answer(get_text(chat_id, "addsubscribe_usage"))
+        await message.answer(_(chat_id, "addsubscribe_usage"))
         return
 
     try:
         target_id = int(parts[1])
         days = int(parts[2])
     except ValueError:
-        await message.answer(get_text(chat_id, "addsubscribe_invalid"))
+        await message.answer(_(chat_id, "addsubscribe_invalid"))
         return
 
     add_subscription(target_id, days)
     display = (
         "∞"
         if days == -1
-        else get_text(message.chat.id, "subscription_days_left", days=days)
+        else _(message.chat.id, "subscription_days_left", days=days)
     )
     await message.answer(
-        get_text(chat_id, "addsubscribe_done", display=display, target_id=target_id)
+        _(chat_id, "addsubscribe_done", display=display, target_id=target_id)
     )
 
 
@@ -134,7 +134,7 @@ async def _perform_search_and_show(message: Message, query: str):
         if not getattr(search_result, "tracks", None) or not getattr(
             search_result.tracks, "results", None
         ):
-            await message.answer(get_text(chat_id, "nothing_found"))
+            await message.answer(_(chat_id, "nothing_found"))
             return
 
         tracks = search_result.tracks.results[:6]
@@ -153,14 +153,14 @@ async def _perform_search_and_show(message: Message, query: str):
         if inline_keyboard:
             markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
             select_msg = await message.answer(
-                get_text(chat_id, "select_track"), reply_markup=markup
+                _(chat_id, "select_track"), reply_markup=markup
             )
             ctx.user_states.setdefault(chat_id, {})["select_msg"] = select_msg
         else:
-            await message.answer(get_text(chat_id, "tracks_unavailable"))
+            await message.answer(_(chat_id, "tracks_unavailable"))
 
     except Exception:
-        await message.answer(get_text(chat_id, "search_error"))
+        await message.answer(_(chat_id, "search_error"))
 
 
 @router.message(Command("search"))
@@ -173,7 +173,7 @@ async def search_command_handler(message: Message):
 
     if not query:
         await message.answer(
-            get_text(message.chat.id, "search_usage"), parse_mode="Markdown"
+            _(message.chat.id, "search_usage"), parse_mode="Markdown"
         )
         return
 
@@ -190,7 +190,7 @@ async def search_track_handler(message: Message):
 
     query = message.text.strip() if message.text else ""
     if not query:
-        await message.answer(get_text(message.chat.id, "send_track_name"))
+        await message.answer(_(message.chat.id, "send_track_name"))
         return
 
     await _perform_search_and_show(message, query)

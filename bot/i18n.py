@@ -5,7 +5,8 @@ TRANSLATIONS = {
         "welcome": (
             "Отправьте мне название песни или строчку из неё, и я найду этот трек!\n\n"
             "/subscribe — оформить подписку\n"
-            "/status — проверить статус подписки\n\n"
+            "/status — проверить статус подписки\n"
+            "/lang — сменить язык\n\n"
             "Добавьте меня в чат и ищите музыку вместе с друзьями с помощью команды /search _название_"
         ),
         "your_user_id": "Ваш user_id: {user_id}",
@@ -49,7 +50,8 @@ TRANSLATIONS = {
         "welcome": (
             "Send me a song name or a lyric line, and I'll find that track!\n\n"
             "/subscribe — get a subscription\n"
-            "/status — check subscription status\n\n"
+            "/status — check subscription status\n"
+            "/lang — change language\n\n"
             "Add me to a chat and search music together with friends using /search _name_"
         ),
         "your_user_id": "Your user_id: {user_id}",
@@ -92,7 +94,7 @@ TRANSLATIONS = {
 }
 
 
-def get_text(chat_id: int, key: str, **kwargs) -> str:
+def _(chat_id: int, key: str, **kwargs) -> str:
     lang = ctx.user_states.get(chat_id, {}).get("lang", "ru")
     text = TRANSLATIONS.get(lang, TRANSLATIONS["ru"]).get(key, key)
     return text.format(**kwargs) if kwargs else text

@@ -9,7 +9,7 @@ from aiogram import Bot
 from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup
 from yandex_music import ClientAsync
 
-from bot.i18n import get_text
+from bot.i18n import _
 from bot.services.tags import add_tags_to_audio, save_jpeg_thumb
 
 
@@ -55,7 +55,7 @@ class DownloadManager:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text=get_text(chat_id, "delete"), callback_data=f"delete_{message_id}"
+                        text=_(chat_id, "delete"), callback_data=f"delete_{message_id}"
                     )
                 ]
             ]
@@ -101,7 +101,7 @@ class DownloadManager:
                                         if elapsed > 0
                                         else 0
                                     )
-                                    progress_text = get_text(
+                                    progress_text = _(
                                         chat_id, "downloading_progress",
                                         progress=progress,
                                         downloaded=downloaded / (1024 * 1024),
@@ -113,7 +113,7 @@ class DownloadManager:
                                     )
         except Exception:
             await self._edit_progress_message(
-                chat_id, progress_msg_id, get_text(chat_id, "download_error")
+                chat_id, progress_msg_id, _(chat_id, "download_error")
             )
 
     async def _download_and_send_track(
@@ -127,7 +127,7 @@ class DownloadManager:
             title = track_info.title
 
             await self._edit_progress_message(
-                chat_id, progress_msg_id, get_text(chat_id, "downloading_info")
+                chat_id, progress_msg_id, _(chat_id, "downloading_info")
             )
 
             cover_url = f"https://{track_info.cover_uri.replace('%%', '400x400')}"
@@ -160,7 +160,7 @@ class DownloadManager:
                 await self._edit_progress_message(
                     chat_id,
                     progress_msg_id,
-                    get_text(chat_id, "mp3_unavailable"),
+                    _(chat_id, "mp3_unavailable"),
                 )
                 return
 
@@ -178,14 +178,14 @@ class DownloadManager:
                 await self._edit_progress_message(
                     chat_id,
                     progress_msg_id,
-                    get_text(chat_id, "file_too_large"),
+                    _(chat_id, "file_too_large"),
                 )
                 return
 
             await add_tags_to_audio(temp_path, title, artists, cover_data)
 
             await self._edit_progress_message(
-                chat_id, progress_msg_id, get_text(chat_id, "sending_track")
+                chat_id, progress_msg_id, _(chat_id, "sending_track")
             )
 
             try:
@@ -208,7 +208,7 @@ class DownloadManager:
                 await self._add_action_buttons(chat_id, sent_audio.message_id, title)
             except Exception:
                 await self._edit_progress_message(
-                    chat_id, progress_msg_id, get_text(chat_id, "send_error")
+                    chat_id, progress_msg_id, _(chat_id, "send_error")
                 )
                 return
 
@@ -218,7 +218,7 @@ class DownloadManager:
                 pass
 
         except Exception:
-            await self._edit_progress_message(chat_id, progress_msg_id, get_text(chat_id, "general_error"))
+            await self._edit_progress_message(chat_id, progress_msg_id, _(chat_id, "general_error"))
         finally:
             if temp_file and os.path.exists(temp_file):
                 try:

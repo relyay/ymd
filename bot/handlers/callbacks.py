@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery, LabeledPrice, Message
 
 from bot import context as ctx
 from bot.config import SUBSCRIBE_DURATION_DAYS
-from bot.i18n import get_text
+from bot.i18n import _
 from bot.storage.subscription import (
     add_subscription,
     get_subscription_days_left,
@@ -26,19 +26,19 @@ async def download_callback_handler(callback: CallbackQuery):
         except Exception:
             pass
 
-        progress_msg = await ctx.bot.send_message(chat_id, get_text(chat_id, "queued"))
+        progress_msg = await ctx.bot.send_message(chat_id, _(chat_id, "queued"))
 
         ctx.download_manager.enqueue(
             chat_id, track_id, progress_msg.message_id, priority
         )
 
         if priority == 0:
-            await callback.answer(get_text(chat_id, "priority_download"))
+            await callback.answer(_(chat_id, "priority_download"))
         else:
-            await callback.answer(get_text(chat_id, "download_started"))
+            await callback.answer(_(chat_id, "download_started"))
 
     except Exception:
-        await callback.answer(get_text(chat_id, "download_error"))
+        await callback.answer(_(chat_id, "download_error"))
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("lang_"))
@@ -54,9 +54,9 @@ async def delete_track_handler(callback: CallbackQuery):
     try:
         message_id_to_delete = int(callback.data.split("_")[1])
         await ctx.bot.delete_message(callback.message.chat.id, message_id_to_delete)
-        await callback.answer(get_text(callback.message.chat.id, "delete_done"))
+        await callback.answer(_(callback.message.chat.id, "delete_done"))
     except Exception:
-        await callback.answer(get_text(callback.message.chat.id, "delete_error"))
+        await callback.answer(_(callback.message.chat.id, "delete_error"))
 
 
 @router.pre_checkout_query()
@@ -81,6 +81,6 @@ async def successful_payment_handler(message: Message):
     ):
         add_subscription(chat_id, days=SUBSCRIBE_DURATION_DAYS)
         days_left = get_subscription_days_left(chat_id)
-        await message.answer(get_text(chat_id, "payment_thanks", days=days_left))
+        await message.answer(_(chat_id, "payment_thanks", days=days_left))
     else:
-        await message.answer(get_text(chat_id, "payment_unknown"))
+        await message.answer(_(chat_id, "payment_unknown"))
