@@ -8,12 +8,18 @@ from bot import context as ctx
 from bot.config import BOT_TOKEN, MAX_CONCURRENT_DOWNLOADS, SUBSCRIPTIONS_DB, YM_TOKEN, ADMIN_IDS
 from bot.handlers import callbacks, commands
 from bot.services.downloader import DownloadManager
-from bot.storage.users import add_subscription, get_subscription_days_left, init_users_table
+from bot.storage.users import (
+    add_subscription,
+    get_subscription_days_left,
+    init_users_table,
+    sync_admins,
+)
 
 
 async def main():
     os.makedirs(os.path.dirname(SUBSCRIPTIONS_DB) or ".", exist_ok=True)
     init_users_table()
+    sync_admins()
     for admin_id in ADMIN_IDS:
         if get_subscription_days_left(admin_id) == 0:
             add_subscription(admin_id, -1)

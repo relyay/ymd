@@ -2,7 +2,7 @@ import math
 import time
 import sqlite3
 
-from bot.config import SUBSCRIPTIONS_DB, SUBSCRIBE_DURATION_DAYS
+from bot.config import SUBSCRIPTIONS_DB, SUBSCRIBE_DURATION_DAYS, ADMIN_IDS
 
 
 def init_users_table():
@@ -14,7 +14,8 @@ def init_users_table():
                (
                    user_id INTEGER PRIMARY KEY,
                    lang TEXT NOT NULL DEFAULT 'ru',
-                   expires_at INTEGER NOT NULL DEFAULT 0
+                   expires_at INTEGER NOT NULL DEFAULT 0,
+                   is_admin INTEGER NOT NULL DEFAULT 0
                )"""
         )
         conn.commit()
@@ -27,6 +28,26 @@ def register_user(user_id: int) -> None:
     try:
         c = conn.cursor()
         c.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        if user_id in ADMIN_IDS:
+            c.execute(
+                "UPDATE users SET is_admin = 1 WHERE user_id = ?", (user_id,)
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def sync_admins() -> None:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute("UPDATE users SET is_admin = 0")
+        for uid in ADMIN_IDS:
+            c.execute(
+                "INSERT INTO users (user_id, is_admin) VALUES (?, 1) "
+                "ON CONFLICT(user_id) DO UPDATE SET is_admin = 1",
+                (uid,),
+            )
         conn.commit()
     finally:
         conn.close()
