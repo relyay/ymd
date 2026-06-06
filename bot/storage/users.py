@@ -91,8 +91,10 @@ def add_subscription(user_id: int, days: int = SUBSCRIBE_DURATION_DAYS) -> None:
             base = current if current > now else now
             new_expires = base + days * 86400
         else:
-            register_user(user_id)
             new_expires = int(time.time()) + days * 86400
+
+        if not row:
+            register_user(user_id)
 
         c.execute(
             "UPDATE users SET expires_at = ? WHERE user_id = ?",
