@@ -26,9 +26,7 @@ async def download_callback_handler(callback: CallbackQuery):
         except Exception:
             pass
 
-        progress_msg = await ctx.bot.send_message(
-            chat_id, get_text(chat_id, "queued")
-        )
+        progress_msg = await ctx.bot.send_message(chat_id, get_text(chat_id, "queued"))
 
         ctx.download_manager.enqueue(
             chat_id, track_id, progress_msg.message_id, priority
@@ -83,10 +81,6 @@ async def successful_payment_handler(message: Message):
     ):
         add_subscription(chat_id, days=SUBSCRIBE_DURATION_DAYS)
         days_left = get_subscription_days_left(chat_id)
-        await message.answer(
-            get_text(chat_id, "payment_thanks", days=days_left)
-        )
+        await message.answer(get_text(chat_id, "payment_thanks", days=days_left))
     else:
-        await message.answer(
-            get_text(chat_id, "payment_unknown")
-        )
+        await message.answer(get_text(chat_id, "payment_unknown"))

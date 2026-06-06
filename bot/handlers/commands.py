@@ -44,7 +44,12 @@ async def subscribe_handler(message: Message):
     days_left = get_subscription_days_left(chat_id)
     if days_left > 0:
         await message.answer(
-            get_text(chat_id, "already_subscribed", days=days_left, duration=SUBSCRIBE_DURATION_DAYS)
+            get_text(
+                chat_id,
+                "already_subscribed",
+                days=days_left,
+                duration=SUBSCRIBE_DURATION_DAYS,
+            )
         )
 
     try:
@@ -53,7 +58,9 @@ async def subscribe_handler(message: Message):
         invoice_msg = await ctx.bot.send_invoice(
             chat_id=chat_id,
             title=get_text(chat_id, "invoice_title", days=SUBSCRIBE_DURATION_DAYS),
-            description=get_text(chat_id, "invoice_description", days=SUBSCRIBE_DURATION_DAYS),
+            description=get_text(
+                chat_id, "invoice_description", days=SUBSCRIBE_DURATION_DAYS
+            ),
             payload="subscribe_30d",
             provider_token="",
             currency="XTR",
@@ -64,19 +71,19 @@ async def subscribe_handler(message: Message):
         ctx.invoices[chat_id] = invoice_msg.message_id
 
     except Exception:
-        await message.answer(
-            get_text(chat_id, "invoice_failed")
-        )
+        await message.answer(get_text(chat_id, "invoice_failed"))
 
 
 @router.message(Command("lang"))
 async def lang_handler(message: Message):
     inline_keyboard = [
-        [InlineKeyboardButton(text="English 🇬🇧", callback_data="lang_en")],
-        [InlineKeyboardButton(text="Русский 🇷🇺", callback_data="lang_ru")],
+        [InlineKeyboardButton(text="English", callback_data="lang_en")],
+        [InlineKeyboardButton(text="Русский", callback_data="lang_ru")],
     ]
     markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-    await message.answer(get_text(message.chat.id, "choose_language"), reply_markup=markup)
+    await message.answer(
+        get_text(message.chat.id, "choose_language"), reply_markup=markup
+    )
 
 
 @router.message(Command("addsubscribe"))
@@ -100,8 +107,14 @@ async def add_subscribe_handler(message: Message):
         return
 
     add_subscription(target_id, days)
-    display = "∞" if days == -1 else get_text(message.chat.id, "subscription_days_left", days=days)
-    await message.answer(get_text(chat_id, "addsubscribe_done", display=display, target_id=target_id))
+    display = (
+        "∞"
+        if days == -1
+        else get_text(message.chat.id, "subscription_days_left", days=days)
+    )
+    await message.answer(
+        get_text(chat_id, "addsubscribe_done", display=display, target_id=target_id)
+    )
 
 
 async def _perform_search_and_show(message: Message, query: str):
@@ -142,7 +155,7 @@ async def _perform_search_and_show(message: Message, query: str):
             select_msg = await message.answer(
                 get_text(chat_id, "select_track"), reply_markup=markup
             )
-            ctx.user_states[chat_id] = {"select_msg": select_msg}
+            ctx.user_states.setdefault(chat_id, {})["select_msg"] = select_msg
         else:
             await message.answer(get_text(chat_id, "tracks_unavailable"))
 
@@ -159,7 +172,9 @@ async def search_command_handler(message: Message):
             query = parts[1].strip()
 
     if not query:
-        await message.answer(get_text(message.chat.id, "search_usage"), parse_mode="Markdown")
+        await message.answer(
+            get_text(message.chat.id, "search_usage"), parse_mode="Markdown"
+        )
         return
 
     await _perform_search_and_show(message, query)
