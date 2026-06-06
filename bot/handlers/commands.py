@@ -10,16 +10,33 @@ from aiogram.types import (
 from bot import context as ctx
 from bot.config import ADMIN_IDS, SUBSCRIBE_DURATION_DAYS, SUBSCRIBE_PRICE_STARS
 from bot.i18n import _
-from bot.storage.users import add_subscription, get_subscription_days_left, register_user
+from bot.storage.users import (
+    add_subscription,
+    get_subscription_days_left,
+    register_user,
+    set_user_lang,
+)
 
 router = Router()
 
 
 @router.message(Command("start"))
 async def send_welcome(message: Message):
-    register_user(message.from_user.id)
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    register_user(user_id)
+
+    code = message.from_user.language_code
+    if code and code.startswith("en"):
+        detected = "en"
+    else:
+        detected = "ru"
+    set_user_lang(user_id, detected)
+    ctx.user_states.setdefault(chat_id, {})["lang"] = detected
+
     await message.answer(
-        _(message.chat.id, "welcome"),
+        _(chat_id, "welcome"),
         parse_mode="Markdown",
     )
 
