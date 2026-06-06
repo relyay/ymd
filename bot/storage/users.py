@@ -1,8 +1,8 @@
 import math
-import time
 import sqlite3
+import time
 
-from bot.config import SUBSCRIPTIONS_DB, SUBSCRIBE_DURATION_DAYS, ADMIN_IDS
+from bot.config import ADMIN_IDS, SUBSCRIBE_DURATION_DAYS, SUBSCRIPTIONS_DB
 
 
 def init_users_table():
@@ -29,9 +29,7 @@ def register_user(user_id: int) -> None:
         c = conn.cursor()
         c.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
         if user_id in ADMIN_IDS:
-            c.execute(
-                "UPDATE users SET is_admin = 1 WHERE user_id = ?", (user_id,)
-            )
+            c.execute("UPDATE users SET is_admin = 1 WHERE user_id = ?", (user_id,))
         conn.commit()
     finally:
         conn.close()
