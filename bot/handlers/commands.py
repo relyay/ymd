@@ -14,12 +14,24 @@ from bot.config import ADMIN_IDS, SUBSCRIBE_DURATION_DAYS, SUBSCRIBE_PRICE_STARS
 from bot.i18n import _
 from bot.storage.users import (
     add_subscription,
+    ban_user,
     get_subscription_days_left,
+    is_banned,
     register_user,
+    remove_subscription,
     set_user_lang,
 )
 
 router = Router()
+
+
+@router.message.middleware()
+async def banned_check_middleware(handler, event: Message, data):
+    user_id = event.from_user.id
+    if user_id not in ADMIN_IDS and is_banned(user_id):
+        await event.answer(_(event.chat.id, "banned_message"))
+        return
+    return await handler(event, data)
 
 
 @router.message(Command("start"))
@@ -106,8 +118,8 @@ async def lang_handler(message: Message):
     )
 
 
-@router.message(Command("addsubscribe"))
-async def add_subscribe_handler(message: Message):
+@router.message(Command("addsub"))
+async def add_sub_handler(message: Message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     if user_id not in ADMIN_IDS:
@@ -116,14 +128,14 @@ async def add_subscribe_handler(message: Message):
 
     parts = message.text.split()
     if len(parts) != 3:
-        await message.answer(_(chat_id, "addsubscribe_usage"))
+        await message.answer(_(chat_id, "addsub_usage"))
         return
 
     try:
         target_id = int(parts[1])
         days = int(parts[2])
     except ValueError:
-        await message.answer(_(chat_id, "addsubscribe_invalid"))
+        await message.answer(_(chat_id, "addsub_invalid"))
         return
 
     add_subscription(target_id, days)
@@ -133,7 +145,61 @@ async def add_subscribe_handler(message: Message):
         else _(message.chat.id, "subscription_days_left", days=days)
     )
     await message.answer(
-        _(chat_id, "addsubscribe_done", display=display, target_id=target_id)
+        _(chat_id, "addsub_done", display=display, target_id=target_id)
+    )
+
+
+@router.message(Command("delsub"))
+async def del_sub_handler(message: Message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    if user_id not in ADMIN_IDS:
+        await message.answer(_(chat_id, "admin_love"))
+        return
+
+    parts = message.text.split()
+    if len(parts) != 2:
+        await message.answer(_(chat_id, "delsub_usage"))
+        return
+
+    try:
+        target_id = int(parts[1])
+    except ValueError:
+        await message.answer(_(chat_id, "delsub_invalid"))
+        return
+
+    remove_subscription(target_id)
+    await message.answer(
+        _(chat_id, "delsub_done", target_id=target_id)
+    )
+
+
+@router.message(Command("ban"))
+async def ban_handler(message: Message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    if user_id not in ADMIN_IDS:
+        await message.answer(_(chat_id, "admin_love"))
+        return
+
+    parts = message.text.split()
+    if len(parts) != 2:
+        await message.answer(_(chat_id, "ban_usage"))
+        return
+
+    try:
+        target_id = int(parts[1])
+    except ValueError:
+        await message.answer(_(chat_id, "ban_invalid"))
+        return
+
+    if target_id == user_id:
+        await message.answer(_(chat_id, "ban_self"))
+        return
+
+    ban_user(target_id)
+    await message.answer(
+        _(chat_id, "ban_done", target_id=target_id)
     )
 
 

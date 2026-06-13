@@ -15,12 +15,23 @@ def init_users_table():
                    user_id INTEGER PRIMARY KEY,
                    lang TEXT NOT NULL DEFAULT 'ru',
                    expires_at INTEGER NOT NULL DEFAULT 0,
-                   is_admin INTEGER NOT NULL DEFAULT 0
+                   is_admin INTEGER NOT NULL DEFAULT 0,
+                   banned INTEGER NOT NULL DEFAULT 0
                )"""
         )
         conn.commit()
+        _migrate_users_table(conn)
     finally:
         conn.close()
+
+
+def _migrate_users_table(conn):
+    c = conn.cursor()
+    c.execute("PRAGMA table_info(users)")
+    columns = [row[1] for row in c.fetchall()]
+    if "banned" not in columns:
+        c.execute("ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
 
 
 def register_user(user_id: int) -> None:
@@ -130,3 +141,38 @@ def get_subscription_days_left(user_id: int) -> int:
 def is_subscribed(user_id: int) -> bool:
     days = get_subscription_days_left(user_id)
     return days == -1 or days > 0
+
+
+def remove_subscription(user_id: int) -> None:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute("UPDATE users SET expires_at = 0 WHERE user_id = ?", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def is_banned(user_id: int) -> bool:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute("SELECT banned FROM users WHERE user_id = ?", (user_id,))
+        row = c.fetchone()
+    finally:
+        conn.close()
+    return bool(row[0]) if row else False
+
+
+def ban_user(user_id: int) -> None:
+    conn = sqlite3.connect(SUBSCRIPTIONS_DB)
+    try:
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO users (user_id, banned, expires_at) VALUES (?, 1, 0) "
+            "ON CONFLICT(user_id) DO UPDATE SET banned = 1, expires_at = 0",
+            (user_id,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
