@@ -57,7 +57,32 @@ async def send_welcome(message: Message):
 
 @router.message(Command("status"))
 async def status_handler(message: Message):
+    user_id = message.from_user.id
     chat_id = message.chat.id
+
+    parts = message.text.split()
+
+    if len(parts) == 2 and user_id in ADMIN_IDS:
+        try:
+            target_id = int(parts[1])
+        except ValueError:
+            await message.answer(_(chat_id, "addsub_invalid"))
+            return
+
+        if is_banned(target_id):
+            text = f"{_(chat_id, 'status_user_header', target_id=target_id)}\n{_(chat_id, 'subscription_status')}{_(chat_id, 'status_banned')}"
+        else:
+            days_left = get_subscription_days_left(target_id)
+            if days_left == -1:
+                status_text = _(chat_id, "subscription_infinite")
+            elif days_left > 0:
+                status_text = _(chat_id, "subscription_days_left", days=days_left)
+            else:
+                status_text = _(chat_id, "subscription_none")
+            text = f"{_(chat_id, 'status_user_header', target_id=target_id)}\n{_(chat_id, 'subscription_status')}{status_text}"
+        await message.answer(text)
+        return
+
     days_left = get_subscription_days_left(chat_id)
     status_text = ""
     if days_left == -1:
